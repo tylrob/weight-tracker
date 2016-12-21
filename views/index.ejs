@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>node-auth-marionette</title>
+		<link rel="stylesheet" href="css/bootstrap.min.css">
+		<link rel="stylesheet" href="css/chartist.css">
+		<link rel="stylesheet" href="css/main.css">
+	</head>
+	<body>
+		<!-- Bootstrapped data upon load -->
+		<script>
+			var bootstrappedLogin = {
+				'username': '<$= username $>',
+				'isLoggedIn': '<$= isLoggedIn $>'
+			};
+		</script>
+
+		<div id="layout-hook"></div>
+
+		<!-- Layout template -->
+		<script type="text/template" id="layout">
+			<div class="center-block" style="max-width:415px">
+				<div id="hero-region"></div>		
+				<div class="container">
+					<div id="graph-region"></div>				
+					<div id="add-weighin-form-region"></div>
+					<div id="main-ui-region"></div>
+					<div id="footer-region"></div>
+				</div>
+			</div>
+		</script>
+
+		<!-- Graph template -->
+		<script type="text/template" id="graph-template">
+			<h3>My progress</h3>
+			<div id="graph" class="ct-chart ct-golden-section"></div>
+		</script>	
+
+		<!-- Hero template -->
+		<script type="text/template" id="hero-template">
+			<div class="jumbotron hero-height">
+				<div class="container">
+					<h1>Tracker</h1>
+					<p>Tracker is a web app for tracking your body weight</p>
+				</div>
+			</div>
+		</script>
+
+		<!-- Footer template -->
+		<script type="text/template" id="footer-template">
+		<div class="text-center">
+			<p><a href="/logout">Logout</a></p>
+		</div>
+		</script>			
+
+		<!-- Login form template -->
+		<script type="text/template" id="login-form">
+<h3>Login</h3>
+			<form>
+				<div class="form-group">
+					<label>Email</label>
+					<input type="email" class="form-control" name="login-username" placeholder="Email">
+				</div>
+				<div class="form-group">
+					<label>Password</label>
+					<input type="password" class="form-control" name="login-password" placeholder="Password">
+				</div>
+				<button type="button" class="btn btn-default" id="login-button">Login</button> &nbsp<a href="#newuser">New user?</a>
+			</form>
+            <div id="error-message"></div>
+
+<!--
+	        <div class="panel panel-info top-margin">
+	        	<div class="panel-heading">Dev Info</div>
+	        	<div class="panel-body">
+	        		<p>username: <%= username %></p>
+	        		<p>password: <%= password %></p>
+	        		<p>isLoggedIn: <%= isLoggedIn %></p>
+	        	</div>
+	        </div>
+-->
+
+		</script>
+
+		<!-- Error message template -->
+		<script type="text/template" id="error-message-view">
+			<div class="alert alert-danger top-margin" role="alert"><%= message %></div>
+		</script>
+
+		<!-- New user template -->
+		<script type="text/template" id="new-user-form">
+			<h3>Create an account</h3>
+			<form>
+				<div class="form-group">
+					<label>Email</label>
+					<input type="email" class="form-control" name="new-user-username" placeholder="Enter your email">
+				</div>
+				<div class="form-group">
+					<label>Password</label>
+					<input type="password" class="form-control" name="new-user-password" placeholder="Choose a password">
+				</div>
+				<button type="button" class="btn btn-default" id="new-user-button">Create account</button> &nbsp<a href="#login">I already have an account</a>
+			</form>
+            <div id="error-message"></div>
+
+      <!--
+            <div class="panel panel-info">
+            	<div class="panel-heading">Dev Info</div>
+            	<div class="panel-body">
+		            <p>username: <%= username %></p>
+		            <p>password: <%= password %></p>
+		            <p>isLoggedIn: <%= isLoggedIn %></p>
+		        </div>
+		    </div>
+
+		-->
+		</script>
+		
+		<!-- Table Template -->
+		<script type="text/template" id="table-template">
+				<thead>
+					<tr>
+						<th class="col-xs-9"></th>
+						<th class="col-xs-3"></th>
+					</tr>
+				</thead>
+				<tbody>
+				</tbody>
+		</script>
+
+		<!-- Row Template -->
+		<script type="text/template" id="row-template">
+			<td style="vertical-align: middle">
+				<strong><%= weight %> lbs</strong> on <%= date.format('ddd, MMM Do YYYY') %>
+			</td>
+			<td style="vertical-align: middle">
+				<div class="pull-right">
+					<button type="button" class="delete-weighin btn btn-default">
+						<span class="glyphicon glyphicon-trash"></span>
+					</button>
+				</div>
+			</td>
+		</script>
+
+
+		<!-- Form template -->
+		<script type="text/template" id="add-weighin-form-view">
+<div class="top-margin"></div>
+<form class="form-horizontal">
+  <div class="form-group">
+  <div class="col-xs-1"></div>
+    <label for="inputEmail3" class="col-xs-2 control-label">Date</label>
+    <div class="col-xs-8">
+      <input type="date" class="form-control" name="weightDate">
+    </div>
+  <div class="col-xs-1"></div>
+  </div>
+  <div class="form-group">
+  	<div class="col-xs-1"></div>
+    <label for="inputPassword3" class="col-xs-2 control-label">Weight</label>
+    <div class="col-xs-8">
+      <input type="text" class="form-control" name="weight">
+    </div>
+    <div class="col-xs-1"></div>
+  </div>
+  <div class="form-group">
+  <div class="col-xs-1"></div>
+    <div class="col-xs-10">
+      <button type="button" id="save" class="btn btn-primary btn-lg btn-block">Submit</button>
+    </div>
+  </div>
+</form>
+		</script>
+
+		<script type="text/javascript" src="js/jquery.js"></script>
+		<script type="text/javascript" src="js/underscore.js"></script>
+		<script type="text/javascript" src="js/backbone.js"></script>
+		<script type="text/javascript" src="js/backbone.radio.js"></script>
+		<script type="text/javascript" src="js/backbone.marionette.js"></script>
+		<script type="text/javascript" src="js/bootstrap.min.js"></script>
+		<script type="text/javascript" src="js/validate.js"></script>
+		<script type="text/javascript" src="js/moment.js"></script>
+		<script type="text/javascript" src="js/chartist.js"></script>
+		<script type="text/javascript" src="js/main.js"></script>
+	</body>
+</html>
