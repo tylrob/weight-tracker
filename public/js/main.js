@@ -77,7 +77,6 @@ var Weighins = Backbone.Collection.extend({
 });
 
 //Regions
-
 var ModalRegion = Mn.Region.extend({
   attachHtml: function(view){
     // Some effect to show the view:
@@ -151,7 +150,7 @@ var LoginFormView = Marionette.View.extend({
 				console.log("Save successful");
 				console.log("Message from backend: " + JSON.stringify(options))
 				console.log(JSON.stringify(response))
-				router.navigate('weighins',{trigger: true});
+				app.router.navigate('weighins',{trigger: true});
 			},
 			error: function(model, response, options){
 				var message = new ErrorMessage({message: response.responseJSON.error});
@@ -189,7 +188,7 @@ var NewUserFormView = Marionette.View.extend({
 				console.log("Save successful");
 				console.log("Message from backend: " + JSON.stringify(options))
 				console.log(JSON.stringify(response))
-				router.navigate('weighins',{trigger: true});
+				app.router.navigate('weighins',{trigger: true});
 			},
 			error: function(){
 				console.log("save error");
@@ -210,9 +209,16 @@ var NewUserFormView = Marionette.View.extend({
 var AddWeighinFormView = Marionette.View.extend({
 	template: '#add-weighin-form-view',
 	events: {
-		'click #save': 'save'
+		'click #save': 'save',
+		'keypress': 'submitOnEnter'
 	},
-	save: function(){
+	submitOnEnter: function(e){
+		if (e.which === 13) { // ENTER_KEY is 13
+			e.preventDefault();
+			this.submit();
+		}
+	},
+	submit: function(){
 		console.log("clicked Submit");
 		var newWeighin = new Weighin();
 		var weight = $('input[name="weight"]').val();
@@ -353,21 +359,27 @@ var GraphView = Marionette.View.extend({
 
 //Controller
 var MyController = {
-	showNewUserForm: function(){
+	clearRegions: function(){
 		app.myLayout.getRegion('footerRegion').empty();
+		app.myLayout.getRegion('graphRegion').empty();
+		app.myLayout.getRegion('addWeighinFormRegion').empty();
+	},
+	showNewUserForm: function(){
+		this.clearRegions();
 		app.heroView = new HeroView();
 		app.newUserFormView = new NewUserFormView({model: app.newUserModel});
 		app.myLayout.showChildView('heroRegion', app.heroView);		
 		app.myLayout.getRegion('mainUiRegion').show(app.newUserFormView);
 	},
 	showLoginForm: function(){
-		app.myLayout.getRegion('footerRegion').empty();
+		this.clearRegions();
 		app.heroView = new HeroView();
 		app.loginFormView = new LoginFormView({model: app.loginModel});
 		app.myLayout.showChildView('heroRegion', app.heroView);
 		app.myLayout.getRegion('mainUiRegion').show(app.loginFormView);
 	},
 	showWeighins: function(){
+		console.log('showing weighins');
 		app.myLayout.getRegion('heroRegion').empty();
 		app.footerView = new FooterView();
 		app.myLayout.getRegion('footerRegion').show(app.footerView);
@@ -388,7 +400,7 @@ var MyController = {
 	}
 };
 
-var MyRouter = Marionette.AppRouter.extend({
+var Router = Marionette.AppRouter.extend({
 	controller: MyController,
 	appRoutes: {
 		'':'showLoginForm',
@@ -400,27 +412,7 @@ var MyRouter = Marionette.AppRouter.extend({
 
 //Start App
 var app = new App();
-
 app.loginModel = new LoginModel(bootstrappedLogin);
 app.newUserModel = new NewUserModel();
-
-var router = new MyRouter();
+app.router = new Router();
 Backbone.history.start();
-
-var data1 = {
-  series: [
-    {
-      name: 'series-1',
-      data: [
-        {x: moment(143134652600).utc(), y: 53},
-        {x: moment(143234652600).utc(), y: 40},
-        {x: moment(143340052600).utc(), y: 45},
-        {x: moment(143366652600).utc(), y: 40},
-        {x: moment(143410652600).utc(), y: 20},
-        {x: moment(143508652600).utc(), y: 32},
-        {x: moment(143569652600).utc(), y: 18},
-        {x: moment(143579652600).utc(), y: 11}
-      ]
-    }
-  ]
-};

@@ -4,7 +4,7 @@ module.exports = function(app, passport){
 
 	app.get('/', nocache, function(req, res){
 		if (req.isAuthenticated()){
-			res.render('index.ejs', {username: req.user.local.username, isLoggedIn: true});	
+			res.render('index.ejs', {username: req.user.local.username, password: null, isLoggedIn: true});	
 			//Also pass in the list of weighins that should render immediately?		
 		} else {
 			res.render('index.ejs', {username: null, isLoggedIn: false});
