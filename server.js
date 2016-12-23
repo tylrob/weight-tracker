@@ -12,7 +12,7 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var session = require('express-session');
 var MongoStore = require('connect-mongo')(session);
-var uri = process.env.MONGOLAB_URI || process.env.LOCAL_URI || 'mongodb://localhost:27017/weight-tracker';
+var uri = process.env.MONGODB_URI || process.env.LOCAL_URI || 'mongodb://localhost:27017/weight-tracker';
 
 
 //Configuration
