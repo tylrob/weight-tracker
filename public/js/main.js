@@ -1,7 +1,20 @@
 //Frontend code for node-auth-marionette
 $.ajaxSetup({ cache: false }); //prevent jQuery from caching ajax requests and allowing logged out users to see their logged in data.
 
-//App
+//Add parse and format functions to Validate.js
+validate.extend(validate.validators.datetime, {
+	//Input is a Moment so just pass through
+	parse: function(value, options){
+		return value;
+	},
+	//Input is a Moment already 
+	format: function(value, options){
+		var format = options.dateOnly ? 'YYYY-MM-DD' : 'YYYY-MM-DD hh:mm:ss';
+		return format(format);
+	}
+});
+
+//Marionette App
 var App = Marionette.Application.extend({
 	initialize: function(){
 		//Assign a layout to the App, which in turn assigns the Regions upon its creation.
@@ -50,7 +63,7 @@ var Weighin = Backbone.Model.extend({
 	},
 	parse: function(response){
 		if (response.date){
-			response.date = moment(response.date).utc();			
+			response.date = moment(response.date).utc().startOf('day');			
 		}
 		return response;
 	},
@@ -58,7 +71,8 @@ var Weighin = Backbone.Model.extend({
 		console.log("hello from validate");
 		var constraints = {
 			date: {
-				presence: true
+				presence: true,
+				datetime: true
 			},
 			weight: {
 				presence: true
@@ -90,6 +104,7 @@ var MyLayout = Marionette.View.extend({
 	el: '#layout-hook',
 	template: "#layout",
 	regions: {
+		navRegion: "#nav-region",
 		heroRegion: "#hero-region",
 		headerRegion: "#header-region",
 		graphRegion: '#graph-region',
@@ -102,7 +117,11 @@ var MyLayout = Marionette.View.extend({
 	}
 });
 
-//Error Message View
+
+var NavView = Marionette.View.extend({
+	template: "#nav-template"
+});
+
 var HeroView = Marionette.View.extend({
 	template: "#hero-template"
 });
@@ -150,9 +169,15 @@ var LoginFormView = Marionette.View.extend({
 				console.log("Save successful");
 				console.log("Message from backend: " + JSON.stringify(options))
 				console.log(JSON.stringify(response))
+				self.model.set({
+					"password": null
+				});
 				app.router.navigate('weighins',{trigger: true});
 			},
 			error: function(model, response, options){
+				self.model.set({
+					"password": null
+				});
 				var message = new ErrorMessage({message: response.responseJSON.error});
 				var messageView = new ErrorMessageView({model: message});
 				self.showChildView('errorMessage', messageView);
@@ -208,38 +233,125 @@ var NewUserFormView = Marionette.View.extend({
 
 var AddWeighinFormView = Marionette.View.extend({
 	template: '#add-weighin-form-view',
+	regions: {
+		errorMessage: "#error-message"
+	},
 	events: {
 		'click #save': 'save',
-		'keypress': 'submitOnEnter'
+		'keypress': 'submitOnEnter',
+		'change #weightDate': 'updateViewForDuplicateDate',
+		'invalid': 'invalidEventFired'
+	},
+	initialize: function(){
+		this.listenTo()
+	},
+	invalidEventFired: function(){
+		console.log('invalid event fired');
 	},
 	submitOnEnter: function(e){
 		if (e.which === 13) { // ENTER_KEY is 13
 			e.preventDefault();
-			this.submit();
+			this.save();
 		}
 	},
-	submit: function(){
-		console.log("clicked Submit");
-		var newWeighin = new Weighin();
-		var weight = $('input[name="weight"]').val();
-		var date = $('input[name="weightDate"]').val();
-		newWeighin.set({
-			"weight": weight,
-			"date": moment.utc(date)
-		});
-		//collection.create() calls validate on its own. If the model doesn't validate, won't add or call server.
-		app.weighins.create(newWeighin,{
-			wait: true,
-			success: function(){
-				$('input[name="weight"]').val('');
-				$('input[name="weightDate"]').val('');
-				console.log("Success");
-			},
-			error: function(){
-				console.log("error");
+	save: function(){
+		var self = this;
+		var weight = $('#weight').val();
+		var date = $('#weightDate').val();
+		date = moment(date).utc().startOf('day');	
+		if (this.hasDuplicateDate()){
+			console.log("hasduplicate date is true");
+			//Find the existing model that matches in the client collection
+			var existingWeighin = app.weighins.find(function(weighin){
+				return moment(date).isSame(weighin.get('date'));
+			});
+			//Set it on the client
+			existingWeighin.save({
+				'weight': weight,
+				'date': date
+			},{
+				wait: true,
+				success: function(){
+					$('#weight').val('');
+					$('#weightDate').val('');
+					self.clearMessages();
+					console.log("success");
+				},
+				error: function(){
+					console.log("error");
+				}
+			});
+			//TODO: Make this show on UI not console
+			console.log(JSON.stringify(existingWeighin.validationError));
+			/*
+			if (existingWeighin.validationError !== undefined){
+				this.showErrorMessage(JSON.stringify(existingWeighin.validationError));				
+			} else {
+				this.clearMessages();
 			}
+			*/
+		} else {
+			//Add new...
+			var newWeighin = new Weighin();
+			newWeighin.set({
+				"weight": weight,
+				"date": date
+			});
+			//collection.create() calls validate on its own. If the model doesn't validate, won't add or call server.
+			app.weighins.create(newWeighin,{
+				wait: true,
+				success: function(){
+					$('#weight').val('');
+					$('#weightDate').val('');
+					self.clearMessages();
+					console.log("Success");
+				},
+				error: function(){
+					console.log("error");
+				}
+			});
+			//TODO: Make this show on UI not console. Move it to the error callback of create.
+			console.log(JSON.stringify(newWeighin.validationError));
+			/*
+			if (newWeighin.validationError !== undefined){
+				this.showErrorMessage(JSON.stringify(newWeighin.validationError));				
+			} else {
+				this.clearMessages();
+			}
+			*/
+		}
+	},
+	hasDuplicateDate: function(){
+		var date = $('#weightDate').val();
+		date = moment(date).utc().startOf('day');
+		var existingDates = app.weighins.pluck('date');
+		console.log(existingDates);
+		//See if you can find the existing date in the collection
+		var findResult = _.find(existingDates, function(existingDate){
+			return moment(date).isSame(existingDate);
 		});
-		console.log(JSON.stringify(newWeighin.validationError));
+		if (findResult !== undefined){
+			return true;
+		} else {
+			return false;
+		}
+	},
+	updateViewForDuplicateDate: function(){
+		if (this.hasDuplicateDate()){
+			this.showErrorMessage('You already have an entry for that date.');
+			$('#save').text('Save anyway');			
+		} else {
+			this.clearMessages();
+		}
+	},
+	clearMessages: function(){
+		this.getRegion('errorMessage').empty();
+		$('#save').text('Save');
+	},
+	showErrorMessage: function(errorText){
+		var message = new ErrorMessage({message: errorText});
+		var messageView = new ErrorMessageView({model: message});
+		this.getRegion('errorMessage').show(messageView);
 	}
 });
 
@@ -256,6 +368,12 @@ var RowView = Marionette.View.extend({
 
 var TableBody = Marionette.CollectionView.extend({
 	tagName: 'tbody',
+	initialize: function(){
+		this.listenTo(this.collection, 'sync', function(){
+			console.log("tablebody Heard a sync");
+			this.render();
+		});
+	},
 	childView: RowView,
 	childViewEvents: {
 		'editWeighin': 'editWeighin',
@@ -288,9 +406,6 @@ var TableView = Marionette.View.extend({
 
 var GraphView = Marionette.View.extend({
 	template: '#graph-template',
-	initialize: function(){
-
-	},
 	onAttach: function(){
 		this.drawGraph();
 		this.listenTo(this.collection, 'sync', function(){
@@ -363,6 +478,7 @@ var MyController = {
 		app.myLayout.getRegion('footerRegion').empty();
 		app.myLayout.getRegion('graphRegion').empty();
 		app.myLayout.getRegion('addWeighinFormRegion').empty();
+		app.myLayout.getRegion('navRegion').empty();
 	},
 	showNewUserForm: function(){
 		this.clearRegions();
@@ -381,8 +497,8 @@ var MyController = {
 	showWeighins: function(){
 		console.log('showing weighins');
 		app.myLayout.getRegion('heroRegion').empty();
-		app.footerView = new FooterView();
-		app.myLayout.getRegion('footerRegion').show(app.footerView);
+		app.myLayout.getRegion('navRegion').show(new NavView());
+		app.myLayout.getRegion('footerRegion').show(new FooterView());
 		app.weighins = new Weighins();
 		app.weighins.fetch({
 			success: function(model, response, options){
