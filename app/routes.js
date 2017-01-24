@@ -74,11 +74,14 @@ module.exports = function(app, passport){
 			{$push: {weighins: newWeighin}},
 			{new: true},
 			function(err, doc){
-				console.log("Errors: " + err);
-				console.log("New doc: " + doc);
+				if (err){
+					res.status(500).send({});
+				} else {
+					console.log("new doc " + doc);
+					res.status(200).send(doc.weighins[doc.weighins.length - 1]);
+				}
 			}
 		);
-		res.status(200).send({});
 	});
 
 	app.get('/api/weighins', nocache, function(req, res){
@@ -96,11 +99,15 @@ module.exports = function(app, passport){
 			{$set: {'weighins.$.weight': req.body.weight}},
 			{new: true},
 			function(err, doc){
-				console.log("Errors: " + err);
-				console.log("New doc: " + doc);
+				if (err){
+					console.log("Errors: " + err);
+					res.status(500).send({});				
+				} else {
+					console.log("New doc: " + doc);
+					res.status(200).send(doc.weighins[doc.weighins.length - 1]);
+				}				
 			}
 		);
-		res.status(200).send({});
 	});
 
 	app.delete('/api/weighins/:_id', function(req, res){
@@ -109,11 +116,15 @@ module.exports = function(app, passport){
 			{$pull: {weighins: {_id: req.params._id}}},
 			{new: true},
 			function(err, doc){
-				console.log("Errors: " + err);
-				console.log("New doc: " + doc);
+				if (err) {
+					console.log("Errors: " + err);
+					res.status(500).send({});
+				} else {
+					console.log("New doc " + doc);
+					res.status(200).send({});
+				}
 			}
-		);
-		res.status(200).send({});
+		);				
 	});
 };
 

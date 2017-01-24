@@ -46,7 +46,7 @@ var NewUserModel = Backbone.Model.extend({
 				presence: true
 			}
 		};
-		var errors = validate({username: attrs.username}, constraints);
+		var errors = validate({username: attrs.username}, constraints, {format: "flat"});
 		return errors;
 	}
 });
@@ -78,7 +78,7 @@ var Weighin = Backbone.Model.extend({
 				presence: true
 			}
 		};
-		var errors = validate({date: attrs.date, weight: attrs.weight}, constraints);
+		var errors = validate({date: attrs.date, weight: attrs.weight}, constraints, {format: "flat"});
 		return errors;
 	}
 });
@@ -224,7 +224,6 @@ var NewUserFormView = Marionette.View.extend({
 		}		
 	},
 	showError: function(error){
-		error = JSON.stringify(error);
 		var messageModel = new ErrorMessage({message: error});
 		var messageView = new ErrorMessageView({model: messageModel});
 		this.showChildView('errorMessage', messageView);
@@ -281,15 +280,13 @@ var AddWeighinFormView = Marionette.View.extend({
 					console.log("error");
 				}
 			});
-			//TODO: Make this show on UI not console
+			//TODO: Consider moving this to the error callback of create.
 			console.log(JSON.stringify(existingWeighin.validationError));
-			/*
-			if (existingWeighin.validationError !== undefined){
-				this.showErrorMessage(JSON.stringify(existingWeighin.validationError));				
+			if (existingWeighin.validationError !== (undefined || null)){
+				this.showErrorMessage(existingWeighin.validationError);				
 			} else {
 				this.clearMessages();
 			}
-			*/
 		} else {
 			//Add new...
 			var newWeighin = new Weighin();
@@ -299,7 +296,6 @@ var AddWeighinFormView = Marionette.View.extend({
 			});
 			//collection.create() calls validate on its own. If the model doesn't validate, won't add or call server.
 			app.weighins.create(newWeighin,{
-				wait: true,
 				success: function(){
 					$('#weight').val('');
 					$('#weightDate').val('');
@@ -308,17 +304,16 @@ var AddWeighinFormView = Marionette.View.extend({
 				},
 				error: function(){
 					console.log("error");
-				}
+				},
+				wait: true
 			});
-			//TODO: Make this show on UI not console. Move it to the error callback of create.
+			//TODO: Consider moving this to the error callback of create.
 			console.log(JSON.stringify(newWeighin.validationError));
-			/*
-			if (newWeighin.validationError !== undefined){
-				this.showErrorMessage(JSON.stringify(newWeighin.validationError));				
+			if (newWeighin.validationError !== (undefined || null)){
+				this.showErrorMessage(newWeighin.validationError);				
 			} else {
 				this.clearMessages();
 			}
-			*/
 		}
 	},
 	hasDuplicateDate: function(){
@@ -349,6 +344,7 @@ var AddWeighinFormView = Marionette.View.extend({
 		$('#save').text('Save');
 	},
 	showErrorMessage: function(errorText){
+		console.log(errorText);
 		var message = new ErrorMessage({message: errorText});
 		var messageView = new ErrorMessageView({model: message});
 		this.getRegion('errorMessage').show(messageView);
@@ -383,7 +379,7 @@ var TableBody = Marionette.CollectionView.extend({
 		console.log("Edit link clicked");
 	},
 	deleteWeighin: function(event){
-		event.model.destroy({wait:true});
+		event.model.destroy({wait: true});
 	}	
 });
 
