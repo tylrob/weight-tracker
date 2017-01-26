@@ -172,6 +172,7 @@ var LoginFormView = Marionette.View.extend({
 				self.model.set({
 					"password": null
 				});
+				app.loginModel.set({isLoggedIn: "true"});
 				app.router.navigate('weighins',{trigger: true});
 			},
 			error: function(model, response, options){
@@ -196,12 +197,18 @@ var NewUserFormView = Marionette.View.extend({
 	initialize: function(){
 	},
 	events: {
-		'click #new-user-button': 'save',
+		'click #new-user-button': 'submit',
+		'keypress': 'submitOnEnter'
 	},
 	onRender: function(){
 
 	},
-	save: function(){
+	submitOnEnter: function(e){
+		if (e.which === 13) { // ENTER_KEY is 13
+			this.submit();
+		}
+	},
+	submit: function(){
 		var username = $('input[name="new-user-username"]').val();
 		var password = $('input[name="new-user-password"]').val();
 		this.model.set({
@@ -212,7 +219,8 @@ var NewUserFormView = Marionette.View.extend({
 			success: function(model, response, options){
 				console.log("Save successful");
 				console.log("Message from backend: " + JSON.stringify(options))
-				console.log(JSON.stringify(response))
+				console.log(JSON.stringify(response));
+				app.loginModel.set({isLoggedIn: "true"});
 				app.router.navigate('weighins',{trigger: true});
 			},
 			error: function(){
@@ -477,6 +485,10 @@ var MyController = {
 		app.myLayout.getRegion('navRegion').empty();
 	},
 	showNewUserForm: function(){
+		if (app.loginModel.get('isLoggedIn') == 'true'){
+			console.log("isLoggedIn was true");
+			return app.router.navigate('weighins', {trigger: true});
+		}
 		this.clearRegions();
 		app.heroView = new HeroView();
 		app.newUserFormView = new NewUserFormView({model: app.newUserModel});
@@ -484,6 +496,10 @@ var MyController = {
 		app.myLayout.getRegion('mainUiRegion').show(app.newUserFormView);
 	},
 	showLoginForm: function(){
+		if (app.loginModel.get('isLoggedIn') == 'true'){
+			console.log("isLoggedIn was true");
+			return app.router.navigate('weighins', {trigger: true});
+		}
 		this.clearRegions();
 		app.heroView = new HeroView();
 		app.loginFormView = new LoginFormView({model: app.loginModel});
@@ -491,6 +507,10 @@ var MyController = {
 		app.myLayout.getRegion('mainUiRegion').show(app.loginFormView);
 	},
 	showWeighins: function(){
+		if (app.loginModel.get('isLoggedIn') == 'false'){
+			console.log("isLoggedIn was false");
+			return app.router.navigate('login', {trigger: true});
+		}
 		console.log('showing weighins');
 		app.myLayout.getRegion('heroRegion').empty();
 		app.myLayout.getRegion('navRegion').show(new NavView());

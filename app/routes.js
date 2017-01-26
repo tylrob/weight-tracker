@@ -65,7 +65,7 @@ module.exports = function(app, passport){
 		res.redirect('/');
 	});
 
-	app.post('/api/weighins', function(req, res){
+	app.post('/api/weighins', apiIsLoggedIn, function(req, res){
 		console.log(req.body);
 
 		var newWeighin = {'date': req.body.date, 'weight': req.body.weight}
@@ -84,16 +84,12 @@ module.exports = function(app, passport){
 		);
 	});
 
-	app.get('/api/weighins', nocache, function(req, res){
-		if (req.isAuthenticated()){
-			console.log(req.user.weighins);
-			res.status(200).send(req.user.weighins);
-		} else {
-			res.status(401).end(); //consider refactoring the "isAuthenticated else status 401" to middleware.
-		}
+	app.get('/api/weighins', apiIsLoggedIn, nocache, function(req, res){
+		console.log(req.user.weighins);
+		res.status(200).send(req.user.weighins);
 	});
 
-	app.put('/api/weighins/:_id', function(req, res){
+	app.put('/api/weighins/:_id', apiIsLoggedIn, function(req, res){
 		User.findOneAndUpdate(
 			{'local.username': req.user.local.username, 'weighins._id': req.params._id},
 			{$set: {'weighins.$.weight': req.body.weight}},
@@ -110,7 +106,7 @@ module.exports = function(app, passport){
 		);
 	});
 
-	app.delete('/api/weighins/:_id', function(req, res){
+	app.delete('/api/weighins/:_id', apiIsLoggedIn, function(req, res){
 		User.findOneAndUpdate(
 			{'local.username': req.user.local.username},
 			{$pull: {weighins: {_id: req.params._id}}},
@@ -127,6 +123,14 @@ module.exports = function(app, passport){
 		);				
 	});
 };
+
+function apiIsLoggedIn(req, res, next){
+	if (req.isAuthenticated()){
+		return next();
+	} else {
+		res.status(401).send({});
+	}
+}
 
 function isLoggedIn(req, res, next){
 	if (req.isAuthenticated()){
