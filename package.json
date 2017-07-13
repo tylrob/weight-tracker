@@ -26,6 +26,6 @@
   "author": "tylerrobinson@gmail.com",
   "license": "MIT",
   "engines": {
-    "node": "4.1.1"
+    "node": "8.1.4"
   }
 }
